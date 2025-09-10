@@ -4,9 +4,10 @@ Implements rule-based trading signals using market structure, FVG, order blocks,
 Fixed indentation errors permanently - All syntax errors resolved - Confidence scoring added
 """
 
-import pandas as pd
-import numpy as np
-import talib
+# type: ignore
+import pandas as pd  # type: ignore
+import numpy as np  # type: ignore
+import talib  # type: ignore
 from scipy.signal import argrelextrema
 from typing import Dict, List, Tuple, Optional
 import streamlit as st
@@ -402,6 +403,9 @@ class SMCSignalGenerator:
             # Skip signal generation in poor market conditions
             return []
         
+        # Get order flow confluence analysis for signal enhancement
+        order_flow_confluence = self.order_flow_analyzer.analyze_order_flow_confluence(df)
+        
         # Generate Market Buy signals
         if bias == 'Bullish':
             market_buy_signals = self._generate_market_buy_signals(
@@ -429,9 +433,6 @@ class SMCSignalGenerator:
             df, fvgs, order_blocks, poi, current_price, current_atr, quality_threshold
         )
         signals.extend(limit_sell_signals)
-        
-        # Get order flow confluence analysis for signal enhancement
-        order_flow_confluence = self.order_flow_analyzer.analyze_order_flow_confluence(df)
         
         # Filter signals by minimum confluences (higher quality)
         signals = [s for s in signals if s['confluences'] >= quality_threshold]
