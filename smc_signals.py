@@ -406,7 +406,7 @@ class SMCSignalGenerator:
         if bias == 'Bullish':
             market_buy_signals = self._generate_market_buy_signals(
                 df, fvgs, order_blocks, liquidity_grabs, price_action, 
-                poi, current_price, current_atr, swing_lows, quality_threshold
+                poi, current_price, current_atr, swing_lows, quality_threshold, order_flow_confluence
             )
             signals.extend(market_buy_signals)
         
@@ -414,7 +414,7 @@ class SMCSignalGenerator:
         if bias == 'Bearish':
             market_sell_signals = self._generate_market_sell_signals(
                 df, fvgs, order_blocks, liquidity_grabs, price_action,
-                poi, current_price, current_atr, swing_highs, quality_threshold
+                poi, current_price, current_atr, swing_highs, quality_threshold, order_flow_confluence
             )
             signals.extend(market_sell_signals)
         
@@ -430,9 +430,8 @@ class SMCSignalGenerator:
         )
         signals.extend(limit_sell_signals)
         
-        # Generate Order Flow signals
-        order_flow_signals = self.order_flow_analyzer.get_order_flow_signals(df)
-        signals.extend(order_flow_signals)
+        # Get order flow confluence analysis for signal enhancement
+        order_flow_confluence = self.order_flow_analyzer.analyze_order_flow_confluence(df)
         
         # Filter signals by minimum confluences (higher quality)
         signals = [s for s in signals if s['confluences'] >= quality_threshold]
@@ -498,8 +497,8 @@ class SMCSignalGenerator:
         
         return signals
     
-    def _generate_market_buy_signals(self, df, fvgs, order_blocks, liquidity_grabs, price_action, poi, current_price, atr, swing_lows, quality_threshold=3):
-        """Generate Market Buy signals"""
+    def _generate_market_buy_signals(self, df, fvgs, order_blocks, liquidity_grabs, price_action, poi, current_price, atr, swing_lows, quality_threshold=3, order_flow_confluence=None):
+        """Generate Market Buy signals with order flow enhancement"""
         signals = []
         
         # Check for bullish confluences
@@ -616,6 +615,37 @@ class SMCSignalGenerator:
                 confluences += 1
                 rationale_parts.append("Moderate Volume Confirmation")
         
+        # Order Flow Confluence Enhancement
+        if order_flow_confluence and order_flow_confluence['confluence_score'] > 0:
+            # Add order flow confluences based on strength
+            of_score = order_flow_confluence['confluence_score']
+            
+            if of_score >= 2.0:
+                confluences += 2
+                rationale_parts.append("Strong Order Flow Confirmation")
+            elif of_score >= 1.0:
+                confluences += 1
+                rationale_parts.append("Order Flow Confirmation")
+            
+            # Add specific order flow factors
+            if order_flow_confluence['imbalances']:
+                bullish_imbalances = [im for im in order_flow_confluence['imbalances'] if im['type'] == 'buying_imbalance']
+                if bullish_imbalances:
+                    confluences += 1
+                    rationale_parts.append("Buying Imbalance")
+            
+            if order_flow_confluence['absorptions']:
+                bullish_absorptions = [abs for abs in order_flow_confluence['absorptions'] if abs['type'] == 'bullish_absorption']
+                if bullish_absorptions:
+                    confluences += 1
+                    rationale_parts.append("Bullish Absorption")
+            
+            if order_flow_confluence['aggressive_orders']:
+                bullish_aggressive = [agg for agg in order_flow_confluence['aggressive_orders'] if agg['type'] == 'aggressive_buy']
+                if bullish_aggressive:
+                    confluences += 1
+                    rationale_parts.append("Aggressive Buying")
+        
         if confluences >= quality_threshold:
             # Calculate stop loss and take profit with proper validation
             # For buy signals, stop loss should be below entry price
@@ -667,8 +697,8 @@ class SMCSignalGenerator:
         
         return signals
     
-    def _generate_market_sell_signals(self, df, fvgs, order_blocks, liquidity_grabs, price_action, poi, current_price, atr, swing_highs, quality_threshold=3):
-        """Generate Market Sell signals"""
+    def _generate_market_sell_signals(self, df, fvgs, order_blocks, liquidity_grabs, price_action, poi, current_price, atr, swing_highs, quality_threshold=3, order_flow_confluence=None):
+        """Generate Market Sell signals with order flow enhancement"""
         signals = []
         
         # Check for bearish confluences
@@ -784,6 +814,37 @@ class SMCSignalGenerator:
             elif volume_score >= 1.5:
                 confluences += 1
                 rationale_parts.append("Moderate Volume Confirmation")
+        
+        # Order Flow Confluence Enhancement
+        if order_flow_confluence and order_flow_confluence['confluence_score'] > 0:
+            # Add order flow confluences based on strength
+            of_score = order_flow_confluence['confluence_score']
+            
+            if of_score >= 2.0:
+                confluences += 2
+                rationale_parts.append("Strong Order Flow Confirmation")
+            elif of_score >= 1.0:
+                confluences += 1
+                rationale_parts.append("Order Flow Confirmation")
+            
+            # Add specific order flow factors
+            if order_flow_confluence['imbalances']:
+                bearish_imbalances = [im for im in order_flow_confluence['imbalances'] if im['type'] == 'selling_imbalance']
+                if bearish_imbalances:
+                    confluences += 1
+                    rationale_parts.append("Selling Imbalance")
+            
+            if order_flow_confluence['absorptions']:
+                bearish_absorptions = [abs for abs in order_flow_confluence['absorptions'] if abs['type'] == 'bearish_absorption']
+                if bearish_absorptions:
+                    confluences += 1
+                    rationale_parts.append("Bearish Absorption")
+            
+            if order_flow_confluence['aggressive_orders']:
+                bearish_aggressive = [agg for agg in order_flow_confluence['aggressive_orders'] if agg['type'] == 'aggressive_sell']
+                if bearish_aggressive:
+                    confluences += 1
+                    rationale_parts.append("Aggressive Selling")
         
         if confluences >= quality_threshold:
             # Calculate stop loss and take profit with proper validation

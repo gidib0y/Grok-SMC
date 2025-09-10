@@ -893,35 +893,18 @@ def display_order_flow_analysis(symbol, df, market_type):
             with col4:
                 st.write(f"Strength: {order['strength']:.1f}")
     
-    # Order Flow Signals
-    order_flow_signals = order_flow_analyzer.get_order_flow_signals(df)
+    # Order Flow Integration Note
+    st.subheader("🎯 Order Flow Integration")
+    st.info("""
+    **Order flow analysis is now integrated as confluence factors in SMC signals:**
     
-    if order_flow_signals:
-        st.subheader("🎯 Order Flow Trading Signals")
-        
-        for signal in order_flow_signals:
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.write(f"**{signal['type']}**")
-                st.write(f"Direction: {signal['direction']}")
-            
-            with col2:
-                st.write(f"Entry: {format_price(signal['entry'], market_type)}")
-                st.write(f"SL: {format_price(signal['sl'], market_type)}")
-            
-            with col3:
-                st.write(f"TP: {format_price(signal['tp'], market_type)}")
-                st.write(f"RR: {signal['rr']:.2f}")
-            
-            with col4:
-                st.write(f"Confluences: {signal['confluences']}")
-                st.write(f"Type: {signal['order_flow_type']}")
-            
-            st.write(f"**Rationale:** {signal['rationale']}")
-            st.write("---")
-    else:
-        st.info("No order flow signals found. Try analyzing a different symbol or timeframe.")
+    • **Volume Imbalances** enhance signal strength
+    • **Volume Absorptions** confirm institutional activity  
+    • **Aggressive Orders** validate price movement
+    • **Volume Profile** provides key support/resistance levels
+    
+    Look for these factors in the main signals table under "Rationale" column.
+    """)
 
 
 def display_scan_results(all_signals, risk_pct, account_balance, symbols_to_scan):
