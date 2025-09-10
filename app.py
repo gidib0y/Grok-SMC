@@ -25,6 +25,7 @@ from utils import (
 )
 from ml_signal_optimizer import MLSignalOptimizer
 from ml_data_collector import MLDataCollector
+from order_flow_analyzer import OrderFlowAnalyzer
 
 # Page configuration
 st.set_page_config(
@@ -449,7 +450,7 @@ def display_analysis_results(symbol, df, signals, market_type, risk_pct, account
     """Display analysis results for a single symbol"""
     
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["📈 Chart & Signals", "📊 Signals Table", "📉 Backtest", "📋 Analysis"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Chart & Signals", "📊 Signals Table", "📉 Backtest", "📋 Analysis", "🌊 Order Flow"])
     
     with tab1:
         display_chart_with_signals(symbol, df, signals, market_type)
@@ -462,6 +463,9 @@ def display_analysis_results(symbol, df, signals, market_type, risk_pct, account
     
     with tab4:
         display_analysis_summary(symbol, df, signals, market_type)
+    
+    with tab5:
+        display_order_flow_analysis(symbol, df, market_type)
 
 
 def display_chart_with_signals(symbol, df, signals, market_type):
@@ -771,6 +775,153 @@ def display_analysis_summary(symbol, df, signals, market_type):
     with col3:
         st.metric("Bullish Grabs", len(liquidity_grabs['bullish']))
         st.metric("Bearish Grabs", len(liquidity_grabs['bearish']))
+
+
+def display_order_flow_analysis(symbol, df, market_type):
+    """Display order flow analysis"""
+    
+    st.subheader("🌊 Order Flow Analysis")
+    
+    # Initialize order flow analyzer
+    order_flow_analyzer = OrderFlowAnalyzer(market_type)
+    
+    # Get order flow confluence analysis
+    confluence_analysis = order_flow_analyzer.analyze_order_flow_confluence(df)
+    
+    # Display confluence metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Order Flow Score", f"{confluence_analysis['confluence_score']:.1f}/5.0")
+    
+    with col2:
+        st.metric("Total Signals", confluence_analysis['total_signals'])
+    
+    with col3:
+        st.metric("Imbalances", len(confluence_analysis['imbalances']))
+    
+    with col4:
+        st.metric("Absorptions", len(confluence_analysis['absorptions']))
+    
+    # Display confluence factors
+    if confluence_analysis['confluence_factors']:
+        st.subheader("🔍 Order Flow Confluence Factors")
+        for factor in confluence_analysis['confluence_factors']:
+            st.write(f"• {factor}")
+    
+    # Volume Profile Analysis
+    st.subheader("📊 Volume Profile")
+    volume_profile = confluence_analysis['volume_profile']
+    
+    if volume_profile['poc']:
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Point of Control", format_price(volume_profile['poc'], market_type))
+        
+        with col2:
+            st.metric("Value Area High", format_price(volume_profile['value_area_high'], market_type))
+        
+        with col3:
+            st.metric("Value Area Low", format_price(volume_profile['value_area_low'], market_type))
+        
+        # Current price vs POC
+        current_price = df['close'].iloc[-1]
+        poc_distance = abs(current_price - volume_profile['poc']) / current_price * 100
+        
+        if poc_distance < 2:
+            st.success(f"✅ Price is within 2% of Point of Control ({poc_distance:.1f}% away)")
+        elif poc_distance < 5:
+            st.info(f"ℹ️ Price is {poc_distance:.1f}% away from Point of Control")
+        else:
+            st.warning(f"⚠️ Price is {poc_distance:.1f}% away from Point of Control")
+    
+    # Recent Imbalances
+    if confluence_analysis['imbalances']:
+        st.subheader("⚖️ Recent Volume Imbalances")
+        
+        for imbalance in confluence_analysis['imbalances'][-5:]:  # Show last 5
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.write(f"**{imbalance['type'].replace('_', ' ').title()}**")
+            
+            with col2:
+                st.write(f"Delta: {imbalance['delta']:.2f}")
+            
+            with col3:
+                st.write(f"Strength: {imbalance['strength']:.1f}")
+            
+            with col4:
+                st.write(f"Volume: {imbalance['volume']:,.0f}")
+    
+    # Recent Absorptions
+    if confluence_analysis['absorptions']:
+        st.subheader("🍽️ Recent Volume Absorptions")
+        
+        for absorption in confluence_analysis['absorptions'][-5:]:  # Show last 5
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.write(f"**{absorption['type'].replace('_', ' ').title()}**")
+            
+            with col2:
+                st.write(f"Volume Ratio: {absorption['volume_ratio']:.1f}x")
+            
+            with col3:
+                st.write(f"Price Change: {absorption['price_change']:.4f}")
+            
+            with col4:
+                st.write(f"Volume: {absorption['volume']:,.0f}")
+    
+    # Recent Aggressive Orders
+    if confluence_analysis['aggressive_orders']:
+        st.subheader("⚡ Recent Aggressive Orders")
+        
+        for order in confluence_analysis['aggressive_orders'][-5:]:  # Show last 5
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.write(f"**{order['type'].replace('_', ' ').title()}**")
+            
+            with col2:
+                st.write(f"Volume Ratio: {order['volume_ratio']:.1f}x")
+            
+            with col3:
+                st.write(f"Price Change: {order['price_change_pct']:.2%}")
+            
+            with col4:
+                st.write(f"Strength: {order['strength']:.1f}")
+    
+    # Order Flow Signals
+    order_flow_signals = order_flow_analyzer.get_order_flow_signals(df)
+    
+    if order_flow_signals:
+        st.subheader("🎯 Order Flow Trading Signals")
+        
+        for signal in order_flow_signals:
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.write(f"**{signal['type']}**")
+                st.write(f"Direction: {signal['direction']}")
+            
+            with col2:
+                st.write(f"Entry: {format_price(signal['entry'], market_type)}")
+                st.write(f"SL: {format_price(signal['sl'], market_type)}")
+            
+            with col3:
+                st.write(f"TP: {format_price(signal['tp'], market_type)}")
+                st.write(f"RR: {signal['rr']:.2f}")
+            
+            with col4:
+                st.write(f"Confluences: {signal['confluences']}")
+                st.write(f"Type: {signal['order_flow_type']}")
+            
+            st.write(f"**Rationale:** {signal['rationale']}")
+            st.write("---")
+    else:
+        st.info("No order flow signals found. Try analyzing a different symbol or timeframe.")
 
 
 def display_scan_results(all_signals, risk_pct, account_balance, symbols_to_scan):

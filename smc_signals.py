@@ -10,6 +10,7 @@ import talib
 from scipy.signal import argrelextrema
 from typing import Dict, List, Tuple, Optional
 import streamlit as st
+from order_flow_analyzer import OrderFlowAnalyzer
 
 
 class SMCSignalGenerator:
@@ -22,6 +23,9 @@ class SMCSignalGenerator:
         self.fvg_threshold = 0.001  # 0.1% default
         if self.market_type == 'crypto':
             self.fvg_threshold = 0.005  # 0.5% for crypto
+        
+        # Initialize order flow analyzer
+        self.order_flow_analyzer = OrderFlowAnalyzer(market_type)
         
     def _get_optimal_entry_timeframe(self, analysis_timeframe: str) -> str:
         """
@@ -425,6 +429,10 @@ class SMCSignalGenerator:
             df, fvgs, order_blocks, poi, current_price, current_atr, quality_threshold
         )
         signals.extend(limit_sell_signals)
+        
+        # Generate Order Flow signals
+        order_flow_signals = self.order_flow_analyzer.get_order_flow_signals(df)
+        signals.extend(order_flow_signals)
         
         # Filter signals by minimum confluences (higher quality)
         signals = [s for s in signals if s['confluences'] >= quality_threshold]
