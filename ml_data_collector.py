@@ -113,16 +113,16 @@ class MLDataCollector:
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
-                    st.write(f"**{signal['signal']['symbol']}**")
-                    st.write(f"{signal['signal']['direction']} {signal['signal']['type']}")
+                    st.write(f"**{signal['signal'].get('symbol', 'Unknown')}**")
+                    st.write(f"{signal['signal'].get('direction', 'N/A')} {signal['signal'].get('type', 'N/A')}")
                 
                 with col2:
-                    st.write(f"Entry: {signal['signal']['entry']:.5f}")
-                    st.write(f"SL: {signal['signal']['sl']:.5f}")
+                    st.write(f"Entry: {signal['signal'].get('entry', 0):.5f}")
+                    st.write(f"SL: {signal['signal'].get('sl', 0):.5f}")
                 
                 with col3:
-                    st.write(f"TP: {signal['signal']['tp']:.5f}")
-                    st.write(f"RR: {signal['signal']['rr']:.2f}")
+                    st.write(f"TP: {signal['signal'].get('tp', 0):.5f}")
+                    st.write(f"RR: {signal['signal'].get('rr', 0):.2f}")
                 
                 with col4:
                     # Outcome buttons
