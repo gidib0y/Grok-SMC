@@ -3,10 +3,11 @@ SMC Trading Signals Generator - Main Streamlit Application
 Professional Smart Money Concepts trading signal generator with comprehensive analysis
 """
 
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+# type: ignore
+import streamlit as st  # type: ignore
+import pandas as pd  # type: ignore
+import plotly.graph_objects as go  # type: ignore
+from plotly.subplots import make_subplots  # type: ignore
 import concurrent.futures
 import threading
 from datetime import datetime
@@ -70,6 +71,92 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def display_dashboard():
+    """Main dashboard with overview and quick actions"""
+    st.subheader("🏠 Trading Dashboard")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Active Signals", "0", "0")
+    with col2:
+        st.metric("Win Rate", "0%", "0%")
+    with col3:
+        st.metric("Total P&L", "$0.00", "$0.00")
+    with col4:
+        st.metric("Risk Level", "Low", "0%")
+    
+    st.markdown("---")
+    
+    # Quick Actions
+    st.subheader("🚀 Quick Actions")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📊 Analyze Symbol", use_container_width=True):
+            st.session_state.show_analysis = True
+            st.rerun()
+    
+    with col2:
+        if st.button("🔍 Scan Market", use_container_width=True):
+            st.session_state.show_scanner = True
+            st.rerun()
+    
+    with col3:
+        if st.button("📈 View Backtest", use_container_width=True):
+            st.session_state.show_backtest = True
+            st.rerun()
+    
+    # Recent Signals
+    st.subheader("📋 Recent Signals")
+    st.info("No recent signals. Use the Signal Analysis tab to generate signals.")
+    
+    # Market Overview
+    st.subheader("🌍 Market Overview")
+    st.info("Market data will be displayed here when signals are generated.")
+
+
+def display_signal_analysis():
+    """Signal analysis section"""
+    st.subheader("📊 Signal Analysis")
+    
+    # Get parameters from sidebar
+    symbol = st.session_state.get('selected_symbol', '')
+    timeframe = st.session_state.get('timeframe', '1h')
+    bias_filter = st.session_state.get('bias_filter', 'All')
+    quality_threshold = st.session_state.get('quality_threshold', 3)
+    risk_pct = st.session_state.get('risk_pct', 1.0)
+    market_type = st.session_state.get('market_type', 'Auto')
+    account_balance = st.session_state.get('account_balance', 10000)
+    use_ml = st.session_state.get('use_ml', False)
+    ml_confidence_threshold = st.session_state.get('ml_confidence_threshold', 0.7)
+    
+    if st.button("🔍 Analyze Symbol", type="primary"):
+        analyze_single_symbol(symbol, timeframe, bias_filter, risk_pct, market_type, account_balance, quality_threshold, use_ml, ml_confidence_threshold)
+    
+    if st.button("📊 Scan Market"):
+        scan_market(timeframe, bias_filter, risk_pct, market_type, account_balance, quality_threshold)
+
+
+def display_market_scanner():
+    """Market scanner section"""
+    st.subheader("🔍 Market Scanner")
+    st.info("Use the Signal Analysis tab to scan multiple markets for trading opportunities.")
+
+
+def display_backtesting_section():
+    """Backtesting section"""
+    st.subheader("📈 Backtesting")
+    st.info("Backtesting will be available when you analyze a symbol in the Signal Analysis tab.")
+
+
+def display_order_flow_section():
+    """Order flow analysis section"""
+    st.subheader("🌊 Order Flow Analysis")
+    st.info("Order flow analysis will be available when you analyze a symbol in the Signal Analysis tab.")
+
+
 def main():
     """Main application function"""
     
@@ -77,7 +164,34 @@ def main():
     st.markdown('<h1 class="main-header">📈 SMC Signals Pro</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #666;">Smart Money Concepts Trading Signal Generator</p>', unsafe_allow_html=True)
     
-    # Sidebar
+    # Main Navigation Menu
+    st.markdown("---")
+    
+    # Create main navigation tabs
+    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5 = st.tabs([
+        "🏠 Dashboard", 
+        "📊 Signal Analysis", 
+        "🔍 Market Scanner", 
+        "📈 Backtesting", 
+        "🌊 Order Flow"
+    ])
+    
+    with main_tab1:
+        display_dashboard()
+    
+    with main_tab2:
+        display_signal_analysis()
+    
+    with main_tab3:
+        display_market_scanner()
+    
+    with main_tab4:
+        display_backtesting_section()
+    
+    with main_tab5:
+        display_order_flow_section()
+    
+    # Sidebar for settings
     with st.sidebar:
         st.header("⚙️ Trading Parameters")
         
@@ -86,16 +200,20 @@ def main():
         symbol = st.text_input(
             "Trading Symbol",
             value=default_symbol,
-            help="Enter symbol (e.g., EURUSD=X, AAPL, BTC-USD) or use quick selection below"
+            help="Enter symbol (e.g., EURUSD=X, AAPL, BTC-USD)"
         )
+        
+        # Store in session state
+        st.session_state.selected_symbol = symbol
         
         # Timeframe selection
         timeframe = st.selectbox(
             "Analysis Timeframe",
             options=['1h', '4h', '1d'],
             index=0,
-            help="Select timeframe for signal analysis. Entry timeframe will be automatically optimized."
+            help="Select timeframe for signal analysis"
         )
+        st.session_state.timeframe = timeframe
         
         # Bias filter
         bias_filter = st.selectbox(
@@ -104,6 +222,7 @@ def main():
             index=0,
             help="Filter signals by market bias"
         )
+        st.session_state.bias_filter = bias_filter
         
         # Signal quality threshold
         quality_threshold = st.slider(
@@ -114,6 +233,7 @@ def main():
             step=1,
             help="Higher values = fewer but higher quality signals"
         )
+        st.session_state.quality_threshold = quality_threshold
         
         # AI/ML Controls
         st.markdown("---")
@@ -124,6 +244,7 @@ def main():
             value=False,
             help="Use machine learning to improve signal quality"
         )
+        st.session_state.use_ml = use_ml
         
         if use_ml:
             ml_confidence_threshold = st.slider(
@@ -134,8 +255,9 @@ def main():
                 step=0.05,
                 help="Minimum ML confidence to show signal"
             )
+            st.session_state.ml_confidence_threshold = ml_confidence_threshold
         else:
-            ml_confidence_threshold = 0.7  # Default value when ML is disabled
+            st.session_state.ml_confidence_threshold = 0.7
         
         # Risk percentage
         risk_pct = st.slider(
@@ -146,6 +268,7 @@ def main():
             step=0.1,
             help="Risk per trade as percentage of account"
         ) / 100
+        st.session_state.risk_pct = risk_pct
         
         # Market type
         selected_market = st.session_state.get('selected_market', 'Auto')
@@ -158,6 +281,7 @@ def main():
             index=market_index,
             help="Market type for analysis"
         )
+        st.session_state.market_type = market_type
         
         # Account balance
         account_balance = st.number_input(
@@ -168,15 +292,7 @@ def main():
             step=1000,
             help="Your trading account balance"
         )
-        
-        # Buttons
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            analyze_btn = st.button("🔍 Analyze Symbol", type="primary")
-        
-        with col2:
-            scan_btn = st.button("📊 Scan Market")
+        st.session_state.account_balance = account_balance
         
         # Market session info
         st.markdown("---")
@@ -226,55 +342,6 @@ def main():
             for market, symbols in examples.items():
                 st.write(f"**{market}:**")
                 st.code(", ".join(symbols))
-    
-    # Main content area
-    if analyze_btn:
-            analyze_single_symbol(symbol, timeframe, bias_filter, risk_pct, market_type, account_balance, quality_threshold, use_ml, ml_confidence_threshold)
-    
-    if scan_btn:
-        scan_market(timeframe, bias_filter, risk_pct, market_type, account_balance, quality_threshold)
-    
-    # Default view - show instructions instead of auto-generating signals
-    if not analyze_btn and not scan_btn:
-        st.info("👆 Please select a symbol above and click 'Analyze Symbol' to generate trading signals")
-        
-        # Show market selection interface
-        st.markdown("---")
-        st.subheader("📊 Quick Market Selection")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**Forex Pairs**")
-            forex_symbols = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", "NZDUSD=X"]
-            for symbol in forex_symbols:
-                if st.button(f"📈 {symbol}", key=f"forex_{symbol}"):
-                    st.session_state.selected_symbol = symbol
-                    st.session_state.selected_market = "forex"
-                    st.rerun()
-        
-        with col2:
-            st.markdown("**Crypto**")
-            crypto_symbols = ["BTC-USD", "ETH-USD", "ADA-USD", "SOL-USD", "DOT-USD", "MATIC-USD"]
-            for symbol in crypto_symbols:
-                if st.button(f"₿ {symbol}", key=f"crypto_{symbol}"):
-                    st.session_state.selected_symbol = symbol
-                    st.session_state.selected_market = "crypto"
-                    st.rerun()
-        
-        with col3:
-            st.markdown("**Stocks**")
-            stock_symbols = ["AAPL", "MSFT", "GOOGL", "TSLA", "AMZN", "NVDA"]
-            for symbol in stock_symbols:
-                if st.button(f"📊 {symbol}", key=f"stock_{symbol}"):
-                    st.session_state.selected_symbol = symbol
-                    st.session_state.selected_market = "stocks"
-                    st.rerun()
-        
-        # Show selected symbol if any
-        if hasattr(st.session_state, 'selected_symbol'):
-            st.success(f"Selected: {st.session_state.selected_symbol} ({st.session_state.get('selected_market', 'unknown')})")
-            st.info("Click 'Analyze Symbol' to generate signals for the selected symbol")
     
     # Footer
     st.markdown("---")
