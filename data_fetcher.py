@@ -135,10 +135,14 @@ def fetch_ohlcv(symbol: str, period: str = '1mo', interval: str = '1h') -> Optio
         DataFrame with OHLCV data or None if failed
     """
     try:
+        print(f"🔍 Data Fetch Debug: Fetching {symbol} with period={period}, interval={interval}")
         ticker = yf.Ticker(symbol)
         df = ticker.history(period=period, interval=interval)
         
+        print(f"🔍 Data Fetch Debug: {symbol} - Data shape: {df.shape}, Empty: {df.empty}")
+        
         if df.empty:
+            print(f"⚠️ Data Fetch Debug: {symbol} returned empty DataFrame")
             return None
             
         # Ensure proper column names
@@ -151,9 +155,11 @@ def fetch_ohlcv(symbol: str, period: str = '1mo', interval: str = '1h') -> Optio
         # Remove timezone info for consistency
         df.index = df.index.tz_localize(None)
         
+        print(f"✅ Data Fetch Debug: {symbol} - Successfully fetched {len(df)} rows")
         return df
         
     except Exception as e:
+        print(f"❌ Data Fetch Debug: {symbol} - Error: {str(e)}")
         st.error(f"Error fetching data for {symbol}: {str(e)}")
         return None
 
@@ -260,4 +266,48 @@ def get_market_hours_info(symbol: str) -> Dict[str, str]:
         'market_type': market_type.title(),
         'trading_hours': market_hours.get(market_type, 'Unknown'),
         'timezone': 'EST/EDT'
+    }
+
+
+def clear_data_cache():
+    """Clear the data fetching cache"""
+    try:
+        fetch_ohlcv.clear()
+        return True
+    except Exception:
+        return False
+
+
+def get_troubleshooting_tips() -> Dict[str, List[str]]:
+    """
+    Get troubleshooting tips for common data fetching issues
+    
+    Returns:
+        Dictionary with troubleshooting tips by category
+    """
+    return {
+        "Symbol Format Issues": [
+            "Try different symbol formats: BRK-B vs BRK.B",
+            "For stocks, use ticker symbols without exchange suffixes",
+            "For forex, use format like EURUSD=X",
+            "For crypto, use format like BTC-USD"
+        ],
+        "Data Source Issues": [
+            "yfinance may have temporary outages",
+            "Some symbols may be delisted or suspended",
+            "Market hours restrictions (stocks trade 9:30 AM - 4:00 PM EST)",
+            "Weekend/holiday data may be limited"
+        ],
+        "Cache Issues": [
+            "Data is cached for 5 minutes - wait and try again",
+            "Clear browser cache if persistent issues",
+            "Try different timeframes or intervals",
+            "Restart the Streamlit app to clear server cache"
+        ],
+        "Network Issues": [
+            "Check internet connection",
+            "Try again in a few minutes",
+            "Some corporate networks block yfinance",
+            "VPN might help if region-restricted"
+        ]
     }

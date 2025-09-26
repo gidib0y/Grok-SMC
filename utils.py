@@ -87,7 +87,7 @@ def validate_signal_quality(signal: Dict) -> Dict[str, bool]:
         'has_stop_loss': signal.get('sl', 0) > 0,
         'has_take_profit': signal.get('tp', 0) > 0,
         'min_confluences': signal.get('confluences', 0) >= 3,
-        'valid_rr': signal.get('rr', 0) >= 1.0,
+        'valid_rr': signal.get('rr', 0) >= 1.5,
         'has_rationale': bool(signal.get('rationale', '').strip())
     }
     

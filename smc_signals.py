@@ -358,7 +358,7 @@ class SMCSignalGenerator:
         return pd.Series(atr_values, index=df.index)
     
     def generate_signals(self, df: pd.DataFrame, bias_filter: str = 'All', quality_threshold: int = 3, 
-                        analysis_timeframe: str = '1h') -> List[Dict]:
+                        analysis_timeframe: str = '1h', symbol: str = None) -> List[Dict]:
         """
         Generate comprehensive SMC trading signals with multi-timeframe entry analysis
         
@@ -371,6 +371,9 @@ class SMCSignalGenerator:
         Returns:
             List of trading signals with precise entry timing
         """
+        # Debug: Show symbol parameter
+        print(f"🔍 SMC Debug: Symbol parameter received: '{symbol}'")
+        
         if len(df) < 50:
             return []
         
@@ -410,7 +413,7 @@ class SMCSignalGenerator:
         if bias == 'Bullish':
             market_buy_signals = self._generate_market_buy_signals(
                 df, fvgs, order_blocks, liquidity_grabs, price_action, 
-                poi, current_price, current_atr, swing_lows, quality_threshold, order_flow_confluence
+                poi, current_price, current_atr, swing_lows, quality_threshold, order_flow_confluence, symbol
             )
             signals.extend(market_buy_signals)
         
@@ -418,19 +421,19 @@ class SMCSignalGenerator:
         if bias == 'Bearish':
             market_sell_signals = self._generate_market_sell_signals(
                 df, fvgs, order_blocks, liquidity_grabs, price_action,
-                poi, current_price, current_atr, swing_highs, quality_threshold, order_flow_confluence
+                poi, current_price, current_atr, swing_highs, quality_threshold, order_flow_confluence, symbol
             )
             signals.extend(market_sell_signals)
         
         # Generate Limit Buy signals
         limit_buy_signals = self._generate_limit_buy_signals(
-            df, fvgs, order_blocks, poi, current_price, current_atr, quality_threshold
+            df, fvgs, order_blocks, poi, current_price, current_atr, quality_threshold, symbol
         )
         signals.extend(limit_buy_signals)
         
         # Generate Limit Sell signals
         limit_sell_signals = self._generate_limit_sell_signals(
-            df, fvgs, order_blocks, poi, current_price, current_atr, quality_threshold
+            df, fvgs, order_blocks, poi, current_price, current_atr, quality_threshold, symbol
         )
         signals.extend(limit_sell_signals)
         
@@ -496,9 +499,15 @@ class SMCSignalGenerator:
         # Sort signals by confidence score (highest first)
         signals.sort(key=lambda x: x.get('confidence', 0), reverse=True)
         
+        # Debug: Show final signals
+        print(f"🔍 SMC Debug: Generated {len(signals)} signals")
+        if signals:
+            print(f"🔍 SMC Debug: First signal symbol: '{signals[0].get('symbol', 'MISSING')}'")
+            print(f"🔍 SMC Debug: First signal entry: {signals[0].get('entry', 'MISSING')}")
+        
         return signals
     
-    def _generate_market_buy_signals(self, df, fvgs, order_blocks, liquidity_grabs, price_action, poi, current_price, atr, swing_lows, quality_threshold=3, order_flow_confluence=None):
+    def _generate_market_buy_signals(self, df, fvgs, order_blocks, liquidity_grabs, price_action, poi, current_price, atr, swing_lows, quality_threshold=3, order_flow_confluence=None, symbol=None):
         """Generate Market Buy signals with order flow enhancement"""
         signals = []
         
@@ -677,15 +686,16 @@ class SMCSignalGenerator:
             price_reward = tp - current_price
             rr = price_reward / price_risk if price_risk > 0 else 0
             
-            # Ensure reasonable RR (between 0.5 and 5.0)
+            # Ensure reasonable RR (between 1.5 and 5.0)
             if rr > 5.0:
                 tp = current_price + (price_risk * 3.0)  # Cap at 1:3 RR
                 rr = 3.0
-            elif rr < 0.5:
+            elif rr < 1.5:
                 tp = current_price + (price_risk * 1.5)  # Minimum 1:1.5 RR
                 rr = 1.5
             
             signals.append({
+                'symbol': symbol or 'Unknown',
                 'type': 'Market',
                 'direction': 'Buy',
                 'entry': current_price,
@@ -698,7 +708,7 @@ class SMCSignalGenerator:
         
         return signals
     
-    def _generate_market_sell_signals(self, df, fvgs, order_blocks, liquidity_grabs, price_action, poi, current_price, atr, swing_highs, quality_threshold=3, order_flow_confluence=None):
+    def _generate_market_sell_signals(self, df, fvgs, order_blocks, liquidity_grabs, price_action, poi, current_price, atr, swing_highs, quality_threshold=3, order_flow_confluence=None, symbol=None):
         """Generate Market Sell signals with order flow enhancement"""
         signals = []
         
@@ -877,15 +887,16 @@ class SMCSignalGenerator:
             price_reward = current_price - tp
             rr = price_reward / price_risk if price_risk > 0 else 0
             
-            # Ensure reasonable RR (between 0.5 and 5.0)
+            # Ensure reasonable RR (between 1.5 and 5.0)
             if rr > 5.0:
                 tp = current_price - (price_risk * 3.0)  # Cap at 1:3 RR
                 rr = 3.0
-            elif rr < 0.5:
+            elif rr < 1.5:
                 tp = current_price - (price_risk * 1.5)  # Minimum 1:1.5 RR
                 rr = 1.5
             
             signals.append({
+                'symbol': symbol or 'Unknown',
                 'type': 'Market',
                 'direction': 'Sell',
                 'entry': current_price,
@@ -898,7 +909,7 @@ class SMCSignalGenerator:
         
         return signals
     
-    def _generate_limit_buy_signals(self, df, fvgs, order_blocks, poi, current_price, atr, quality_threshold=3):
+    def _generate_limit_buy_signals(self, df, fvgs, order_blocks, poi, current_price, atr, quality_threshold=3, symbol=None):
         """Generate Limit Buy signals with institutional-grade enhancements"""
         signals = []
         
@@ -946,11 +957,11 @@ class SMCSignalGenerator:
                     price_reward = tp - entry
                     rr = price_reward / price_risk if price_risk > 0 else 0
                     
-                    # Ensure reasonable RR (between 0.5 and 5.0)
+                    # Ensure reasonable RR (between 1.5 and 5.0)
                     if rr > 5.0:
                         tp = entry + (price_risk * 3.0)  # Cap at 1:3 RR
                         rr = 3.0
-                    elif rr < 0.5:
+                    elif rr < 1.5:
                         tp = entry + (price_risk * 1.5)  # Minimum 1:1.5 RR
                         rr = 1.5
                     
@@ -966,6 +977,7 @@ class SMCSignalGenerator:
                         rationale_parts.append("Volume Confirmation")
                     
                     signals.append({
+                        'symbol': symbol or 'Unknown',
                         'type': 'Limit',
                         'direction': 'Buy',
                         'entry': entry,  # Enhanced entry with buffer
@@ -1020,11 +1032,11 @@ class SMCSignalGenerator:
                     price_reward = tp - entry
                     rr = price_reward / price_risk if price_risk > 0 else 0
                     
-                    # Ensure reasonable RR
+                    # Ensure reasonable RR (between 1.5 and 5.0)
                     if rr > 5.0:
                         tp = entry + (price_risk * 3.0)
                         rr = 3.0
-                    elif rr < 0.5:
+                    elif rr < 1.5:
                         tp = entry + (price_risk * 1.5)
                         rr = 1.5
                     
@@ -1040,6 +1052,7 @@ class SMCSignalGenerator:
                     partial_fill_allowed = True
                     
                     signals.append({
+                        'symbol': symbol or 'Unknown',
                         'type': 'Limit',
                         'direction': 'Buy',
                         'entry': entry,  # Enhanced entry with buffer
@@ -1059,7 +1072,7 @@ class SMCSignalGenerator:
         
         return signals
     
-    def _generate_limit_sell_signals(self, df, fvgs, order_blocks, poi, current_price, atr, quality_threshold=3):
+    def _generate_limit_sell_signals(self, df, fvgs, order_blocks, poi, current_price, atr, quality_threshold=3, symbol=None):
         """Generate Limit Sell signals"""
         signals = []
         
@@ -1092,15 +1105,16 @@ class SMCSignalGenerator:
                     price_reward = entry - tp
                     rr = price_reward / price_risk if price_risk > 0 else 0
                     
-                    # Ensure reasonable RR (between 0.5 and 5.0)
+                    # Ensure reasonable RR (between 1.5 and 5.0)
                     if rr > 5.0:
                         tp = entry - (price_risk * 3.0)  # Cap at 1:3 RR
                         rr = 3.0
-                    elif rr < 0.5:
+                    elif rr < 1.5:
                         tp = entry - (price_risk * 1.5)  # Minimum 1:1.5 RR
                         rr = 1.5
                     
                     signals.append({
+                        'symbol': symbol or 'Unknown',
                         'type': 'Limit',
                         'direction': 'Sell',
                         'entry': fvg['top'],
@@ -1130,6 +1144,7 @@ class SMCSignalGenerator:
                     rr = (ob['high'] - tp) / (sl - ob['high']) if sl > ob['high'] else 0
                     
                     signals.append({
+                        'symbol': symbol or 'Unknown',
                         'type': 'Limit',
                         'direction': 'Sell',
                         'entry': ob['high'],
@@ -1216,7 +1231,7 @@ class SMCSignalGenerator:
         filtered_signals = []
         
         for signal in signals:
-            # Filter 1: Minimum risk-reward ratio
+            # Filter 1: Minimum risk-reward ratio (STRICT 1.5:1 minimum)
             if signal['rr'] < 1.5:  # Require at least 1:1.5 R:R
                 continue
             

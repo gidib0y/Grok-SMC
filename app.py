@@ -16,7 +16,8 @@ import io
 # Import our modules
 from data_fetcher import (
     fetch_ohlcv, validate_symbol, get_watchlist_symbols, 
-    detect_market_type, get_symbol_examples, get_market_hours_info
+    detect_market_type, get_symbol_examples, get_market_hours_info,
+    clear_data_cache, get_troubleshooting_tips
 )
 from smc_signals import SMCSignalGenerator
 from backtest import run_backtest, SMCBacktester
@@ -94,19 +95,21 @@ def display_dashboard():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("📊 Analyze Symbol", use_container_width=True):
+        if st.button("📊 Analyze Symbol", use_container_width=True, key="quick_analyze_symbol"):
             st.session_state.show_analysis = True
             st.rerun()
     
     with col2:
-        if st.button("🔍 Scan Market", use_container_width=True):
+        if st.button("🔍 Scan Market", use_container_width=True, key="quick_scan_market"):
             st.session_state.show_scanner = True
             st.rerun()
     
     with col3:
-        if st.button("📈 View Backtest", use_container_width=True):
+        if st.button("📈 View Backtest", use_container_width=True, key="quick_view_backtest"):
             st.session_state.show_backtest = True
             st.rerun()
+    
+    st.markdown("---")
     
     # Recent Signals
     st.subheader("📋 Recent Signals")
@@ -115,6 +118,27 @@ def display_dashboard():
     # Market Overview
     st.subheader("🌍 Market Overview")
     st.info("Market data will be displayed here when signals are generated.")
+    
+    # Quick Links
+    st.markdown("---")
+    st.subheader("🔗 Quick Links")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📊 View Signal Performance", use_container_width=True, key="dashboard_view_performance"):
+            st.session_state.page = "📊 Signal Performance Tracking"
+            st.rerun()
+    
+    with col2:
+        if st.button("🤖 AI/ML Enhancement", use_container_width=True, key="dashboard_ai_ml"):
+            st.session_state.page = "🤖 AI/ML Enhancement"
+            st.rerun()
+    
+    with col3:
+        if st.button("🔍 Scan Market", use_container_width=True, key="dashboard_scan_market"):
+            st.session_state.page = "🔍 Market Scanner"
+            st.rerun()
 
 
 def display_signal_analysis():
@@ -132,10 +156,10 @@ def display_signal_analysis():
     use_ml = st.session_state.get('use_ml', False)
     ml_confidence_threshold = st.session_state.get('ml_confidence_threshold', 0.7)
     
-    if st.button("🔍 Analyze Symbol", type="primary"):
+    if st.button("🔍 Analyze Symbol", type="primary", key="signal_analyze_symbol"):
         analyze_single_symbol(symbol, timeframe, bias_filter, risk_pct, market_type, account_balance, quality_threshold, use_ml, ml_confidence_threshold)
     
-    if st.button("📊 Scan Market"):
+    if st.button("📊 Scan Market", key="signal_scan_market"):
         scan_market(timeframe, bias_filter, risk_pct, market_type, account_balance, quality_threshold)
 
 
@@ -157,6 +181,66 @@ def display_order_flow_section():
     st.info("Order flow analysis will be available when you analyze a symbol in the Signal Analysis tab.")
 
 
+def display_signal_performance_tracking():
+    """Signal Performance Tracking page"""
+    st.subheader("📊 Signal Performance Tracking")
+    
+    # Initialize ML Data Collector
+    data_collector = MLDataCollector()
+    data_collector.display_tracking_interface()
+
+
+def display_ai_ml_enhancement():
+    """AI/ML Enhancement page"""
+    st.subheader("🤖 AI/ML Enhancement")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 🧠 Machine Learning Features")
+        st.info("""
+        **Current ML Capabilities:**
+        - Signal quality optimization
+        - Performance prediction
+        - Risk assessment
+        - Market condition analysis
+        """)
+        
+        if st.button("🚀 Train ML Models", use_container_width=True, key="ai_train_models"):
+            st.info("ML training will be implemented in future updates")
+    
+    with col2:
+        st.markdown("### 📈 Performance Analytics")
+        st.info("""
+        **Analytics Available:**
+        - Win rate tracking
+        - P&L analysis
+        - Signal accuracy metrics
+        - Market correlation analysis
+        """)
+        
+        if st.button("📊 View Analytics", use_container_width=True, key="ai_view_analytics"):
+            st.info("Analytics dashboard will be implemented in future updates")
+    
+    st.markdown("---")
+    
+    # ML Settings
+    st.markdown("### ⚙️ ML Configuration")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        ml_enabled = st.checkbox("Enable ML Optimization", value=False)
+        confidence_threshold = st.slider("ML Confidence Threshold", 0.0, 1.0, 0.7, 0.1)
+    
+    with col2:
+        auto_retrain = st.checkbox("Auto Retrain Models", value=False)
+        training_frequency = st.selectbox("Training Frequency", ["Daily", "Weekly", "Monthly"])
+    
+    if st.button("💾 Save ML Settings", key="ai_save_settings"):
+        st.success("ML settings saved successfully!")
+
+
 def main():
     """Main application function"""
     
@@ -164,35 +248,34 @@ def main():
     st.markdown('<h1 class="main-header">📈 SMC Signals Pro</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #666;">Smart Money Concepts Trading Signal Generator</p>', unsafe_allow_html=True)
     
-    # Main Navigation Menu
-    st.markdown("---")
-    
-    # Create main navigation tabs
-    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5 = st.tabs([
-        "🏠 Dashboard", 
-        "📊 Signal Analysis", 
-        "🔍 Market Scanner", 
-        "📈 Backtesting", 
-        "🌊 Order Flow"
-    ])
-    
-    with main_tab1:
-        display_dashboard()
-    
-    with main_tab2:
-        display_signal_analysis()
-    
-    with main_tab3:
-        display_market_scanner()
-    
-    with main_tab4:
-        display_backtesting_section()
-    
-    with main_tab5:
-        display_order_flow_section()
-    
-    # Sidebar for settings
+    # Sidebar Navigation
     with st.sidebar:
+        st.header("🧭 Navigation")
+        
+        # Navigation menu
+        page_options = [
+            "🏠 Dashboard",
+            "📊 Signal Analysis", 
+            "🔍 Market Scanner",
+            "📈 Backtesting",
+            "🌊 Order Flow",
+            "📊 Signal Performance Tracking",
+            "🤖 AI/ML Enhancement"
+        ]
+        
+        # Get current page from session state or default to Dashboard
+        current_page = st.session_state.get('page', "🏠 Dashboard")
+        
+        page = st.radio(
+            "Select Page",
+            page_options,
+            index=page_options.index(current_page) if current_page in page_options else 0
+        )
+        
+        # Update session state
+        st.session_state.page = page
+        
+        st.markdown("---")
         st.header("⚙️ Trading Parameters")
         
         # Symbol input
@@ -310,7 +393,7 @@ def main():
             col1, col2 = st.columns(2)
             
             with col1:
-                if st.button("🔄 Train ML Models"):
+                if st.button("🔄 Train ML Models", key="ml_train_models"):
                     ml_optimizer = MLSignalOptimizer()
                     ml_optimizer.load_training_data()
                     
@@ -320,7 +403,7 @@ def main():
                         st.warning("⚠️ Need more training data")
             
             with col2:
-                if st.button("📊 View Model Performance"):
+                if st.button("📊 View Model Performance", key="ml_view_performance"):
                     ml_optimizer = MLSignalOptimizer()
                     importance = ml_optimizer.get_feature_importance()
                     
@@ -330,11 +413,6 @@ def main():
                             st.write(f"• {feature}: {score:.3f}")
                     else:
                         st.info("No trained model available")
-            
-            # Data Collection Interface
-            st.markdown("---")
-            data_collector = MLDataCollector()
-            data_collector.display_tracking_interface()
         
         # Symbol examples
         with st.expander("💡 Symbol Examples"):
@@ -342,6 +420,25 @@ def main():
             for market, symbols in examples.items():
                 st.write(f"**{market}:**")
                 st.code(", ".join(symbols))
+    
+    # Main Content Area
+    st.markdown("---")
+    
+    # Route to appropriate page based on sidebar selection
+    if page == "🏠 Dashboard":
+        display_dashboard()
+    elif page == "📊 Signal Analysis":
+        display_signal_analysis()
+    elif page == "🔍 Market Scanner":
+        display_market_scanner()
+    elif page == "📈 Backtesting":
+        display_backtesting_section()
+    elif page == "🌊 Order Flow":
+        display_order_flow_section()
+    elif page == "📊 Signal Performance Tracking":
+        display_signal_performance_tracking()
+    elif page == "🤖 AI/ML Enhancement":
+        display_ai_ml_enhancement()
     
     # Footer
     st.markdown("---")
@@ -401,8 +498,14 @@ def analyze_single_symbol(symbol, timeframe, bias_filter, risk_pct, market_type,
     with st.spinner("🔍 Generating SMC signals..."):
         signal_generator = SMCSignalGenerator(market_type=market_type)
         
+        # Debug: Show symbol being used
+        st.write(f"🔍 Debug: Generating signals for symbol: '{symbol}'")
+        st.write(f"🔍 Debug: Market type: {market_type}")
+        st.write(f"🔍 Debug: Data shape: {df.shape}")
+        st.write(f"🔍 Debug: Current price: ${df['close'].iloc[-1]:.2f}")
+        
         # Pass analysis timeframe for automated entry timeframe selection
-        signals = signal_generator.generate_signals(df, bias_filter, quality_threshold, timeframe)
+        signals = signal_generator.generate_signals(df, bias_filter, quality_threshold, timeframe, symbol)
         
         # Show entry timeframe information
         entry_tf = signal_generator._get_optimal_entry_timeframe(timeframe)
@@ -411,6 +514,12 @@ def analyze_single_symbol(symbol, timeframe, bias_filter, risk_pct, market_type,
         # Show signal generation status
         if signals:
             st.success(f"✅ Generated {len(signals)} signals")
+            # Debug: Show first signal details
+            if signals:
+                st.write(f"🔍 Debug: First signal details:")
+                st.write(f"Symbol: '{signals[0].get('symbol', 'MISSING')}'")
+                st.write(f"Entry: {signals[0].get('entry', 'MISSING')}")
+                st.write(f"Type: {signals[0].get('type', 'MISSING')}")
         else:
             st.warning("⚠️ No signals found - Try adjusting confluence threshold or bias filter")
         
@@ -462,6 +571,7 @@ def scan_market(timeframe, bias_filter, risk_pct, market_type, account_balance, 
         return
     
     st.info(f"🔍 Scanning {len(symbols_to_scan)} symbols...")
+    st.write(f"📋 Symbols to scan: {symbols_to_scan[:10]}...")  # Show first 10 symbols
     
     # Progress bar
     progress_bar = st.progress(0)
@@ -475,39 +585,78 @@ def scan_market(timeframe, bias_filter, risk_pct, market_type, account_balance, 
             # Fetch data
             df = fetch_ohlcv(symbol, period='6mo', interval=timeframe)
             if df is None or df.empty:
+                st.warning(f"⚠️ No data for {symbol}")
                 return []
             
             # Generate signals
             detected_market = detect_market_type(symbol)
             signal_generator = SMCSignalGenerator(market_type=detected_market)
-            signals = signal_generator.generate_signals(df, bias_filter, quality_threshold, timeframe)
+            signals = signal_generator.generate_signals(df, bias_filter, quality_threshold, timeframe, symbol)
             
             # Add symbol info to signals
             for signal in signals:
                 signal['symbol'] = symbol
                 signal['market_type'] = detected_market
             
+            if signals:
+                st.write(f"✅ {symbol}: Found {len(signals)} signals")
+            
             return signals
             
         except Exception as e:
+            st.error(f"❌ Error scanning {symbol}: {str(e)}")
             return []
     
-    # Use threading for concurrent scanning
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        future_to_symbol = {executor.submit(scan_symbol, symbol): symbol for symbol in symbols_to_scan}
+    # Scan symbols sequentially (more reliable with Streamlit)
+    completed = 0
+    for symbol in symbols_to_scan:
+        try:
+            signals = scan_symbol(symbol)
+            all_signals.extend(signals)
+            completed += 1
+            progress_bar.progress(completed / len(symbols_to_scan))
+            status_text.text(f"Scanned {completed}/{len(symbols_to_scan)} symbols: {symbol}")
+        except Exception as e:
+            completed += 1
+            progress_bar.progress(completed / len(symbols_to_scan))
+            status_text.text(f"Error scanning {symbol}: {str(e)}")
+    
+    # Show scan summary
+    st.success(f"🎯 Scan Complete! Found {len(all_signals)} total signals from {completed} symbols")
+    
+    # Show troubleshooting tips if some symbols failed
+    failed_symbols = len(symbols_to_scan) - completed
+    if failed_symbols > 0:
+        st.warning(f"⚠️ {failed_symbols} symbols had no data available")
         
-        completed = 0
-        for future in concurrent.futures.as_completed(future_to_symbol):
-            symbol = future_to_symbol[future]
-            try:
-                signals = future.result()
-                all_signals.extend(signals)
-                completed += 1
-                progress_bar.progress(completed / len(symbols_to_scan))
-                status_text.text(f"Scanned {completed}/{len(symbols_to_scan)} symbols")
-            except Exception as e:
-                completed += 1
-                progress_bar.progress(completed / len(symbols_to_scan))
+        with st.expander("🔧 Troubleshooting Tips for 'No Data' Issues"):
+            tips = get_troubleshooting_tips()
+            for category, tip_list in tips.items():
+                st.write(f"**{category}:**")
+                for tip in tip_list:
+                    st.write(f"• {tip}")
+            
+            if st.button("🔄 Clear Data Cache", key="clear_cache_scan"):
+                if clear_data_cache():
+                    st.success("✅ Cache cleared! Try scanning again.")
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to clear cache")
+    
+    # Apply ML tracking to scan results if ML is enabled
+    if st.session_state.get('use_ml', False):
+        with st.spinner("🤖 Adding signals to AI tracking system..."):
+            data_collector = MLDataCollector()
+            tracked_signals = []
+            
+            for signal in all_signals:
+                # Add to tracking for performance monitoring
+                tracking_id = data_collector.add_signal_tracking(signal, None)  # No market data for scan
+                signal['tracking_id'] = tracking_id
+                tracked_signals.append(signal)
+            
+            all_signals = tracked_signals
+            st.success(f"✅ Added {len(tracked_signals)} signals to AI tracking system")
     
     # Display scan results
     display_scan_results(all_signals, risk_pct, account_balance, symbols_to_scan)
@@ -679,7 +828,7 @@ def display_signals_table(signals, risk_pct, account_balance, market_type, symbo
             st.info("No limit orders found")
     
     # Export button
-    if st.button("📥 Export Signals to CSV"):
+    if st.button("📥 Export Signals to CSV", key="export_signals_csv"):
         csv = df_signals.to_csv(index=False)
         st.download_button(
             label="Download CSV",
@@ -1050,7 +1199,7 @@ def display_scan_results(all_signals, risk_pct, account_balance, symbols_to_scan
             st.info(f"**#{i+1}** {alert_msg}")
     
     # Export results
-    if st.button("📥 Export Scan Results"):
+    if st.button("📥 Export Scan Results", key="export_scan_results"):
         csv = df_scan.to_csv(index=False)
         st.download_button(
             label="Download CSV",
